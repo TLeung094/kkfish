@@ -22,6 +22,7 @@ import me.kkfish.misc.MessageManager;
 import me.kkfish.misc.DependencyManager;
 import me.kkfish.misc.minigame.MinigameManager;
 import me.kkfish.bootstrap.RootService;
+import me.kkfish.config.FishingModeDefaults;
 import me.kkfish.economy.EconomyService;
 import me.kkfish.events.EventBus;
 import me.kkfish.integrations.SeasonsService;
@@ -248,11 +249,11 @@ public class kkfish extends JavaPlugin {
     }
 
     public boolean isPlayerInVanillaMode(UUID playerId) {
-        // 原版钓鱼被禁用时 vanilla 标记整体失效，一律按插件模式处理
-        if (getCustomConfig().isVanillaFishingDisabled()) {
-            return false;
-        }
-        return playerFishingMode.getOrDefault(playerId, false);
+        Boolean runtimeOverride = playerFishingMode.get(playerId);
+        String defaultMode = getCustomConfig().getMainConfig()
+            .getString("mode-switch.default-mode", "plugin");
+        return FishingModeDefaults.resolve(
+            getCustomConfig().isVanillaFishingDisabled(), runtimeOverride, defaultMode);
     }
 
     public void setPlayerFishingMode(UUID playerId, boolean vanillaMode) {
