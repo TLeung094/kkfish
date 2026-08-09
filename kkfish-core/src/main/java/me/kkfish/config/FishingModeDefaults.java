@@ -1,8 +1,9 @@
 package me.kkfish.config;
 
+import org.bukkit.configuration.file.FileConfiguration;
+
 /**
- * Resolves the effective fishing mode from the server default and an optional
- * per-player runtime override.
+ * Resolves and migrates the configurable default fishing mode.
  */
 public final class FishingModeDefaults {
 
@@ -14,7 +15,33 @@ public final class FishingModeDefaults {
      * invalid values intentionally fall back to plugin mode for compatibility.
      */
     public static boolean isVanillaDefault(String configuredMode) {
-        return configuredMode != null && "vanilla".equalsIgnoreCase(configuredMode.trim());
+        return "vanilla".equals(normalize(configuredMode));
+    }
+
+    /**
+     * Normalizes a configured mode. Only "plugin" and "vanilla" are valid;
+     * missing or invalid values resolve to "plugin".
+     */
+    public static String normalize(String configuredMode) {
+        if (configuredMode == null) {
+            return "plugin";
+        }
+        String normalized = configuredMode.trim().toLowerCase(java.util.Locale.ROOT);
+        return "vanilla".equals(normalized) ? "vanilla" : "plugin";
+    }
+
+    /**
+     * Adds the new setting to existing installations without changing their
+     * established behaviour. Bundled configs may explicitly opt into vanilla.
+     *
+     * @return true when the configuration was changed
+     */
+    public static boolean ensureDefaultMode(FileConfiguration config) {
+        if (config.contains("mode-switch.default-mode")) {
+            return false;
+        }
+        config.set("mode-switch.default-mode", "plugin");
+        return true;
     }
 
     /**

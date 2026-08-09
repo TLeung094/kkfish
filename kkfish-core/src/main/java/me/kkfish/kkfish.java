@@ -77,6 +77,9 @@ public class kkfish extends JavaPlugin {
         config = new Config(this);
 
         config.checkAndAddMissingConfigs();
+        if (FishingModeDefaults.ensureDefaultMode(config.getMainConfig())) {
+            config.saveConfigs();
+        }
         messageManager.loadMessages();
         messageManager.completeAllLanguageFiles();
         
@@ -98,8 +101,6 @@ public class kkfish extends JavaPlugin {
     public void onEnable() {
         rootService = new RootService(this);
         rootService.startup();
-        
-        // 从 RootService 同步字段，保持向后兼容的 getter
         economyService = rootService.getEconomyService();
         economy = economyService != null ? economyService.getEconomy() : null;
         playerPointsAPI = economyService != null ? economyService.getPlayerPointsAPI() : null;
@@ -118,265 +119,69 @@ public class kkfish extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (rootService != null) {
-            rootService.close();
-        }
+        if (rootService != null) rootService.close();
     }
 
-    public static kkfish getInstance() {
-        return instance;
-    }
-
-    public ServerImplementation getFoliaScheduler() {
-        return foliaScheduler;
-    }
+    public static kkfish getInstance() { return instance; }
+    public ServerImplementation getFoliaScheduler() { return foliaScheduler; }
 
     public static void log(String message) {
         MessageManager mm = getInstance().messageManager;
         if (mm == null) {
-            // MessageManager 尚未初始化，直接输出无前缀消息
-            org.bukkit.Bukkit.getConsoleSender().sendMessage(
-                ChatColor.translateAlternateColorCodes('&', message));
+            org.bukkit.Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&', message));
             return;
         }
         String prefix = mm.getPrefix();
         String fullMsg = ChatColor.translateAlternateColorCodes('&', prefix.replace('§', '&') + message);
         org.bukkit.Bukkit.getConsoleSender().sendMessage(fullMsg);
     }
-    
-    public Compete getCompete() {
-        return compete;
-    }
 
-    public Fish getFish() {
-        return fish;
-    }
-
-    public SoundManager getSoundManager() {
-        return soundManager;
-    }
-
-    public Cmd getCmd() {
-        return cmd;
-    }
-
-    public DB getDB() {
-        return db;
-    }
-
-    public AuraSkills getAuraSkills() {
-        return auraSkills;
-    }
-    
-    public MessageManager getMessageManager() {
-        return messageManager;
-    }
-    
-    @Override
-    public org.bukkit.configuration.file.FileConfiguration getConfig() {
-        return super.getConfig();
-    }
-    
-    public Config getCustomConfig() {
-        return config;
-    }
-    
-    public Economy getEconomy() {
-        return economy;
-    }
-    
-    /**
-     * @return 统一经济服务
-     */
-    public EconomyService getEconomyService() {
-        return economyService;
-    }
-    
-    /**
-     * @return RealisticSeasons 季节服务
-     */
-    public SeasonsService getSeasonsService() {
-        return seasonsService;
-    }
-    
-    public boolean isRealisticSeasonsEnabled() {
-        return seasonsService != null && seasonsService.isEnabled();
-    }
-    
-    public void initMetrics() {
-        if (rootService != null) {
-            rootService.reloadMetrics();
-        }
-    }
-    
-    public String getCurrentSeason() {
-        return seasonsService != null ? seasonsService.getCurrentSeason() : null;
-    }
-    
-    public PlayerPointsAPI getPlayerPointsAPI() {
-        return playerPointsAPI;
-    }
-    
-    public GUI getGUI() {
-        return gui;
-    }
-    
-    public Fishing getFishingListener() {
-        return fishingListener;
-    }
-    
-    public int getMajorVersion() {
-        return majorVersion;
-    }
-    
-    public int getMinorVersion() {
-        return minorVersion;
-    }
-    
-    /**
-     * @return 统一版本检测服务
-     */
-    public VersionService getVersionService() {
-        return versionService;
-    }
-    
-    public me.kkfish.utils.EntityBatchProcessor getEntityBatchProcessor() {
-        return entityBatchProcessor;
-    }
-    
-    public boolean isVersion1_21OrHigher() {
-        return versionService != null ? versionService.is1_21OrHigher() : ((majorVersion > 1) || (majorVersion == 1 && minorVersion >= 21));
-    }
+    public Compete getCompete() { return compete; }
+    public Fish getFish() { return fish; }
+    public SoundManager getSoundManager() { return soundManager; }
+    public Cmd getCmd() { return cmd; }
+    public DB getDB() { return db; }
+    public AuraSkills getAuraSkills() { return auraSkills; }
+    public MessageManager getMessageManager() { return messageManager; }
+    @Override public org.bukkit.configuration.file.FileConfiguration getConfig() { return super.getConfig(); }
+    public Config getCustomConfig() { return config; }
+    public Economy getEconomy() { return economy; }
+    public EconomyService getEconomyService() { return economyService; }
+    public SeasonsService getSeasonsService() { return seasonsService; }
+    public boolean isRealisticSeasonsEnabled() { return seasonsService != null && seasonsService.isEnabled(); }
+    public void initMetrics() { if (rootService != null) rootService.reloadMetrics(); }
+    public String getCurrentSeason() { return seasonsService != null ? seasonsService.getCurrentSeason() : null; }
+    public PlayerPointsAPI getPlayerPointsAPI() { return playerPointsAPI; }
+    public GUI getGUI() { return gui; }
+    public Fishing getFishingListener() { return fishingListener; }
+    public int getMajorVersion() { return majorVersion; }
+    public int getMinorVersion() { return minorVersion; }
+    public VersionService getVersionService() { return versionService; }
+    public me.kkfish.utils.EntityBatchProcessor getEntityBatchProcessor() { return entityBatchProcessor; }
+    public boolean isVersion1_21OrHigher() { return versionService != null ? versionService.is1_21OrHigher() : ((majorVersion > 1) || (majorVersion == 1 && minorVersion >= 21)); }
 
     public boolean isPlayerInVanillaMode(UUID playerId) {
         Boolean runtimeOverride = playerFishingMode.get(playerId);
-        String defaultMode = getCustomConfig().getMainConfig()
-            .getString("mode-switch.default-mode", "plugin");
-        return FishingModeDefaults.resolve(
-            getCustomConfig().isVanillaFishingDisabled(), runtimeOverride, defaultMode);
+        String defaultMode = getCustomConfig().getMainConfig().getString("mode-switch.default-mode", "plugin");
+        return FishingModeDefaults.resolve(getCustomConfig().isVanillaFishingDisabled(), runtimeOverride, defaultMode);
     }
 
-    public void setPlayerFishingMode(UUID playerId, boolean vanillaMode) {
-        playerFishingMode.put(playerId, vanillaMode);
-    }
-
-    public void clearPlayerFishingMode(UUID playerId) {
-        playerFishingMode.remove(playerId);
-    }
-    
-    public MinigameManager getMinigameManager() {
-        return minigameManager;
-    }
-
-    /**
-     * 供 RootService 在启动期间设置音效管理器。
-     * 管理器在构造时通过 plugin.getSoundManager() 访问。
-     */
-    public void setSoundManagerInternal(SoundManager soundManager) {
-        this.soundManager = soundManager;
-    }
-
-    /**
-     * 供 RootService 在启动期间设置调度器。
-     * Manager 构造时通过 SchedulerUtil 访问，需要提前注入。
-     */
-    public void setFoliaSchedulerInternal(ServerImplementation scheduler) {
-        this.foliaScheduler = scheduler;
-    }
-
-    /**
-     * 供 RootService 在启动期间设置经济实例。
-     */
-    public void setEconomyInternal(Economy economy) {
-        this.economy = economy;
-    }
-
-    /**
-     * 供 RootService 在启动期间设置 PlayerPoints API。
-     */
-    public void setPlayerPointsInternal(PlayerPointsAPI playerPointsAPI) {
-        this.playerPointsAPI = playerPointsAPI;
-    }
-
-    /**
-     * 供 RootService 在启动期间设置数据库管理器。
-     * Manager 构造时通过 plugin.getDB() 访问。
-     */
-    public void setDBInternal(DB db) {
-        this.db = db;
-    }
-
-    /**
-     * 供 RootService 在启动期间设置玩家上下文存储。
-     * Manager 构造时通过 plugin.getPlayerContextStore() 访问。
-     */
-    public void setPlayerContextStoreInternal(PlayerContextStore playerContextStore) {
-        this.playerContextStore = playerContextStore;
-    }
-
-    /**
-     * 供 RootService 在启动期间设置 GUI。
-     * Manager 构造时通过 plugin.getGUI() 访问。
-     */
-    public void setGUIInternal(GUI gui) {
-        this.gui = gui;
-    }
-
-    /**
-     * 供 RootService 在启动期间设置小游戏管理器。
-     * Manager 构造时通过 plugin.getMinigameManager() 访问。
-     */
-    public void setMinigameManagerInternal(MinigameManager minigameManager) {
-        this.minigameManager = minigameManager;
-    }
-
-    /**
-     * 供 RootService 在启动期间设置钓鱼核心管理器。
-     * Manager 构造时通过 plugin.getFish() 访问。
-     */
-    public void setFishInternal(Fish fish) {
-        this.fish = fish;
-    }
-
-    /**
-     * 供 RootService 在启动期间设置命令管理器。
-     */
-    public void setCmdInternal(Cmd cmd) {
-        this.cmd = cmd;
-    }
-
-    /**
-     * 供 RootService 在启动期间设置 AuraSkills 处理器。
-     */
-    public void setAuraSkillsInternal(AuraSkills auraSkills) {
-        this.auraSkills = auraSkills;
-    }
-
-    /**
-     * 供 RootService 在启动期间设置竞赛管理器。
-     */
-    public void setCompeteInternal(Compete compete) {
-        this.compete = compete;
-    }
-
-    /**
-     * @return 组合根服务
-     */
-    public RootService getRootService() {
-        return rootService;
-    }
-
-    /**
-     * @return 玩家上下文存储
-     */
-    public PlayerContextStore getPlayerContextStore() {
-        return rootService != null ? rootService.getPlayerContextStore() : null;
-    }
-
-    /**
-     * @return 根事件总线
-     */
-    public EventBus getEventBus() {
-        return rootService != null ? rootService.getEventBus() : null;
-    }
+    public void setPlayerFishingMode(UUID playerId, boolean vanillaMode) { playerFishingMode.put(playerId, vanillaMode); }
+    public void clearPlayerFishingMode(UUID playerId) { playerFishingMode.remove(playerId); }
+    public MinigameManager getMinigameManager() { return minigameManager; }
+    public void setSoundManagerInternal(SoundManager soundManager) { this.soundManager = soundManager; }
+    public void setFoliaSchedulerInternal(ServerImplementation scheduler) { this.foliaScheduler = scheduler; }
+    public void setEconomyInternal(Economy economy) { this.economy = economy; }
+    public void setPlayerPointsInternal(PlayerPointsAPI playerPointsAPI) { this.playerPointsAPI = playerPointsAPI; }
+    public void setDBInternal(DB db) { this.db = db; }
+    public void setPlayerContextStoreInternal(PlayerContextStore playerContextStore) { this.playerContextStore = playerContextStore; }
+    public void setGUIInternal(GUI gui) { this.gui = gui; }
+    public void setMinigameManagerInternal(MinigameManager minigameManager) { this.minigameManager = minigameManager; }
+    public void setFishInternal(Fish fish) { this.fish = fish; }
+    public void setCmdInternal(Cmd cmd) { this.cmd = cmd; }
+    public void setAuraSkillsInternal(AuraSkills auraSkills) { this.auraSkills = auraSkills; }
+    public void setCompeteInternal(Compete compete) { this.compete = compete; }
+    public RootService getRootService() { return rootService; }
+    public PlayerContextStore getPlayerContextStore() { return rootService != null ? rootService.getPlayerContextStore() : null; }
+    public EventBus getEventBus() { return rootService != null ? rootService.getEventBus() : null; }
 }
